@@ -1,20 +1,5 @@
 #include "dg.h"
 
-// /* 繧ｳ繝阪け繧ｷ繝ｧ繝ｳ繝ｬ繧ｹ縺ｮ邁｡蜊倥↑繝��繧ｿ讀懃ｴ｢繧ｵ繝ｼ繝�(dg_server.c) */
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <sys/types.h>
-// #include <sys/socket.h> /* 繧ｽ繧ｱ繝�ヨ縺ｮ縺溘ａ縺ｮ蝓ｺ譛ｬ逧�↑繝倥ャ繝繝輔ぃ繧､繝ｫ      */
-// #include <netinet/in.h> /* 繧､繝ｳ繧ｿ繝阪ャ繝医ラ繝｡繧､繝ｳ縺ｮ縺溘ａ縺ｮ繝倥ャ繝繝輔ぃ繧､繝ｫ  */
-// #include <netdb.h>      /* gethostbyname()繧堤畑縺�ｋ縺溘ａ縺ｮ繝倥ャ繝繝輔ぃ繧､繝ｫ */
-// #include <errno.h>
-// #include <string.h>
-// #define  MAXHOSTNAME	64
-// #define  S_UDP_PORT	(u_short)5000  /* 譛ｬ繧ｵ繝ｼ繝舌′逕ｨ縺�ｋ繝昴�繝育分蜿ｷ */
-// #define  MAXKEYLEN	128
-// #define  MAXDATALEN	256
-// int setup_dgserver(struct hostent*, u_short);
-// void db_search(int);
 char *db[] = {"amano-taro","0426-91-9418","ishida-jiro","0426-91-9872",
                  "ueda-saburo","0426-91-9265","ema-shiro","0426-91-7254",
                  "ooishi-goro","0426-91-9618",NULL};
@@ -57,13 +42,61 @@ int setup_dgserver(struct hostent *hostent, u_short port)
 	return socd;
 }
 
+int check_key(char *key)
+{
+    int	i;
+    int ans = 1;
+
+    while (key[i] != '\0')
+    {
+        if (key[i] == ',') ans++;
+        i++;
+    }
+    return ans;
+}
+
+char *return_ans(int key_num, char *key, char **dbp)
+{
+	char *mario;
+	char *ans;
+	char *data;
+
+	for (int i = 0; i < key_num; i++)
+	{
+		if (i != 0){
+			strcat(ans, ",");
+		}
+		mario = strtok(key, ",");
+		/* 繧ｭ繝ｼ繧堤畑縺�※繝��繧ｿ讀懃ｴ｢ */
+		dbp = db;
+		while(*dbp) {
+			if(strcmp(mario, *dbp) == 0) {
+				strcpy(data, *(++dbp));
+				break;
+			}
+			dbp += 2;
+		}
+		strncat(ans, data, sizeof(ans) - strlen(ans) - 1);
+	}
+	return ans;
+}
+
 void db_search(int socd) /* 繧ｯ繝ｩ繧､繧｢繝ｳ繝医′繝��繧ｿ讀懃ｴ｢隕∵ｱゅｒ蜃ｦ逅�☆繧� */
 {
 	struct sockaddr_in	c_address;
     socklen_t c_addrlen;
 	char	key[MAXKEYLEN+1], data[MAXDATALEN+1];
 	int	keylen, datalen;
+    char *ans; // バッファを適切に初期化
 	char	**dbp;
+    int key_num;
+    char *mario;
+    int index = 0;
+    char *new_key;
+	char *new_num;
+	char *only_key;
+	int flag = 0;
+
 
 	while(1) {
 		/* 繧ｭ繝ｼ繧偵た繧ｱ繝�ヨ縺九ｉ隱ｭ縺ｿ霎ｼ繧 */
@@ -73,50 +106,85 @@ void db_search(int socd) /* 繧ｯ繝ｩ繧､繧｢繝ｳ繝医′繝��繧�
 			exit(1);
 		}
 		key[keylen] = '\0';
-		printf("Received key> %s\n",key);
-		/* 繧ｭ繝ｼ繧堤畑縺�※繝��繧ｿ讀懃ｴ｢ */
-		dbp = db;
-		while(*dbp) {
-			if(strcmp(key, *dbp) == 0) {
-				strcpy(data, *(++dbp));
-				break;
+        key_num = check_key(key);
+        if (strncmp(key, "GET:", 4) == 0)
+		{
+			new_key = malloc(sizeof(char) * keylen);
+			
+			new_key = key;
+			while (new_key[index] != '\0')
+			{
+				key[index] = new_key[index+4];
+				index++;
 			}
-			dbp += 2;
+			key[index] = '\0';
 		}
-		if(*dbp == NULL) strcpy(data, "No entry");
-	
+		else if (strncmp(key, "PUT:", 4) == 0 && key_num == 2)
+		{
+			new_key = key;
+			while (new_key[index] != '\0')
+			{
+				key[index] = new_key[index+4];
+				index++;
+			}
+			printf("%s\n", key);
+			key[index] = '\0';
+			index = 0;
+			while (key[index] != ',')
+			{
+				only_key[index] = key[index];
+				printf("%c\n", only_key[index]);
+				printf("debug\n");
+				index++;
+			}
+			printf("%s\n", only_key);
+			while (key[index] != '\0')
+			{
+				new_num[index] = key[index+1];
+			}
+			dbp = db;
+			while (*dbp != NULL)
+			{
+				if (strcmp(only_key, *dbp) == 0)
+				{
+					flag = 1;
+					break;
+				}
+				dbp += 2;
+			}
+			
+			
+			
+		}
+        else
+		{
+            printf("argumet error\n");
+            exit(1);
+        }
+        printf("Received key> %s\n",key);
+        ans = return_ans(key_num, key, dbp);
+
+		if(*dbp == NULL) strcpy(ans, "No entry");
 		/* 讀懃ｴ｢縺励◆繝��繧ｿ繧偵た繧ｱ繝�ヨ縺ｫ譖ｸ縺崎ｾｼ繧 */
-		datalen = strlen(data);
-		if(sendto(socd, data, datalen, 0, (struct sockaddr *)&c_address, c_addrlen) != datalen) {
+        datalen = strlen(ans);
+		if(sendto(socd, ans, strlen(ans), 0, (struct sockaddr *)&c_address, c_addrlen) != datalen) {
 			fprintf(stderr, "datagram error\n"); 
 			exit(1);
 		}
-		printf("Sent data> %s\n", data);
+		printf("Sent data> %s\n", ans);
+		if (flag == 1)
+		{
+			int i = 0;
+			while (only_key != NULL)
+			{
+				if (strcmp(only_key, *db) == 0)
+				{
+					i++;
+					db[i] = new_num;
+					break;
+				}
+				i ++;
+			}
+		}
 	}
-}
-
-void db_add(char *name, char *info)
-{
-    // データベースに新しい名前とデータを追加
-    // この関数は db 配列に新しいエントリを追加するためのものです。
-    // db 配列は静的なので、プログラムを再起動すると追加されたデータは失われます。
-    // データベースの永続性が必要な場合は、ファイルなどの永続的なストレージを使用する必要があります。
-    int db_size = 0;
-
-    // db 配列の要素数を数える
-    while (db[db_size] != NULL)
-    {
-        db_size += 2;
-    }
-
-    // 新しい名前とデータを追加
-    if (db_size < MAXKEYLEN)
-    {
-        db[db_size] = strdup(name);
-        db[db_size + 1] = strdup(info);
-    }
-    else
-    {
-        printf("Database is full. Cannot add new entry.\n");
-    }
 }

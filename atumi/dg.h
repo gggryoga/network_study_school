@@ -26,6 +26,8 @@ void db_search(int);
 int setup_dgclient(struct hostent*, u_short, struct sockaddr_in*, int*);
 void remote_dbsearch(int, struct sockaddr_in*, socklen_t);
 void remote_dbadd(int socd, struct sockaddr_in *s_addressp, socklen_t s_addrlen);
+void db_edit(int socd);
+void remote_dbedit(int socd, struct sockaddr_in *s_addressp, socklen_t s_addrlen);
 
 
 
