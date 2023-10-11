@@ -18,8 +18,6 @@ int main()
 
 	socd = setup_dgclient(s_hostent, S_UDP_PORT, &s_address, &s_addrlen);
 
-	printf("GET or PUT ");
-
     remote_dbsearch(socd, &s_address, s_addrlen);
     close(socd);
     exit(0);
@@ -74,7 +72,7 @@ void remote_dbsearch(int socd, struct sockaddr_in *s_addressp, socklen_t s_addrl
 	/* 繧ｭ繝ｼ繧呈ｨ呎ｺ門�蜉帙°繧牙�蜉� */
     while (1)
     {
-        printf("key?: ");
+        printf("GET or PUT key?: ");
         /* 繧ｭ繝ｼ繧偵た繧ｱ繝�ヨ縺ｫ譖ｸ縺崎ｾｼ繧 */
         if (scanf("%s",key) == EOF) break;
         keylen = strlen(key);

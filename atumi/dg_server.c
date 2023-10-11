@@ -10,12 +10,9 @@ int main(void)
 	char	s_hostname[MAXHOSTNAME];
 	struct hostent	*s_hostent;
 
-	/* 繧ｵ繝ｼ繝舌�繝帙せ繝亥錐縺ｨ縺昴�Internet繧｢繝峨Ξ繧ｹ(繧偵Γ繝ｳ繝舌↓謖√▽hostent讒矩�菴�)繧呈ｱゅａ繧� */
 	gethostname(s_hostname, sizeof(s_hostname));
     printf("server host name =: %s\n", s_hostname);
 	s_hostent = gethostbyname(s_hostname);
-
-	/* 繝��繧ｿ繧ｰ繝ｩ繝�繧ｵ繝ｼ繝舌�蛻晄悄險ｭ螳� */
 	socd = setup_dgserver(s_hostent, S_UDP_PORT);
 
 	/* 繧ｯ繝ｩ繧､繧｢繝ｳ繝医°繧峨�繝��繧ｿ讀懃ｴ｢隕∵ｱゅ�蜃ｦ逅� */
@@ -26,8 +23,6 @@ int setup_dgserver(struct hostent *hostent, u_short port)
 {
 	int	socd;
 	struct sockaddr_in	s_address;
-
-	/* 繧､繝ｳ繧ｿ繝ｼ繝阪ャ繝医ラ繝｡繧､繝ｳ縺ｮSOCK_DGRAM(UDP)蝙九た繧ｱ繝�ヨ縺ｮ讒狗ｯ� */
 	if((socd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) { perror("socket");exit(1); }
 
 	/* 繧｢繝峨Ξ繧ｹ(Internet繧｢繝峨Ξ繧ｹ縺ｨ繝昴�繝育分蜿ｷ)縺ｮ菴懈� */
@@ -46,40 +41,46 @@ int check_key(char *key)
 {
     int	i;
     int ans = 1;
+	int key_num = 0;
 
     while (key[i] != '\0')
     {
-        if (key[i] == ',') ans++;
-        i++;
+		if (key[i] == ',')
+		{
+			return (i + 1);
+		}
+		i++;
     }
-    return ans;
+	return 0;
 }
 
-char *return_ans(int key_num, char *key, char **dbp)
-{
-	char *mario;
-	char *ans;
-	char *data;
+// char *return_ans(int key_num, char *key, char **dbp)
+// {
+// 	char *mario;
+// 	char *ans;
+// 	char *data;
 
-	for (int i = 0; i < key_num; i++)
-	{
-		if (i != 0){
-			strcat(ans, ",");
-		}
-		mario = strtok(key, ",");
-		/* 繧ｭ繝ｼ繧堤畑縺�※繝��繧ｿ讀懃ｴ｢ */
-		dbp = db;
-		while(*dbp) {
-			if(strcmp(mario, *dbp) == 0) {
-				strcpy(data, *(++dbp));
-				break;
-			}
-			dbp += 2;
-		}
-		strncat(ans, data, sizeof(ans) - strlen(ans) - 1);
-	}
-	return ans;
-}
+// 	for (int i = 0; i < key_num; i++)
+// 	{
+// 		if (i != 0){
+// 			strcat(ans, ",");
+// 		}
+// 		mario = strtok(key, ",");
+// 		/* 繧ｭ繝ｼ繧堤畑縺�※繝��繧ｿ讀懃ｴ｢ */
+// 		dbp = db;
+// 		while(*dbp)
+// 		{
+// 			if(strcmp(mario, *dbp) == 0)
+// 			{
+// 				strcpy(data, *(++dbp));
+// 				break;
+// 			}
+// 			dbp += 2;
+// 		}
+// 		strncat(ans, data, sizeof(ans) - strlen(ans) - 1);
+// 	}
+// 	return ans;
+// }
 
 void db_search(int socd) /* 繧ｯ繝ｩ繧､繧｢繝ｳ繝医′繝��繧ｿ讀懃ｴ｢隕∵ｱゅｒ蜃ｦ逅�☆繧� */
 {
@@ -93,12 +94,13 @@ void db_search(int socd) /* 繧ｯ繝ｩ繧､繧｢繝ｳ繝医′繝��繧�
     char *mario;
     int index = 0;
     char *new_key;
-	char *new_num;
+	char new_num[13];
 	char *only_key;
 	int flag = 0;
 
 
-	while(1) {
+	while(1)
+	{
 		/* 繧ｭ繝ｼ繧偵た繧ｱ繝�ヨ縺九ｉ隱ｭ縺ｿ霎ｼ繧 */
 		c_addrlen = sizeof(c_address);
 		if((keylen = recvfrom(socd, key, MAXKEYLEN, 0, (struct sockaddr *)&c_address, &c_addrlen)) < 0) {
@@ -106,18 +108,40 @@ void db_search(int socd) /* 繧ｯ繝ｩ繧､繧｢繝ｳ繝医′繝��繧�
 			exit(1);
 		}
 		key[keylen] = '\0';
-        key_num = check_key(key);
+		printf("1Received key> %s\n",key);
         if (strncmp(key, "GET:", 4) == 0)
 		{
 			new_key = malloc(sizeof(char) * keylen);
-			
+			if (new_key == NULL)
+			{
+				printf("malloc error\n");
+				exit(1);
+			}
 			new_key = key;
+			printf("%s\n", new_key);
 			while (new_key[index] != '\0')
 			{
 				key[index] = new_key[index+4];
 				index++;
 			}
 			key[index] = '\0';
+			printf("ans->%s\n", key);
+			ans = malloc(sizeof(char) * MAXDATALEN);
+			if (ans == NULL)
+			{
+				printf("malloc error\n");
+				exit(1);
+			}
+			printf("debug\n");
+			for (int i = 0; i < index; i++)
+			{
+				if (strncmp(key, db[i], index) == 0)
+				{
+					strcpy(ans, db[i+1]);
+					break;
+				}
+			}
+			printf ("%s\n", ans);
 		}
 		else if (strncmp(key, "PUT:", 4) == 0 && key_num == 2)
 		{
@@ -151,19 +175,15 @@ void db_search(int socd) /* 繧ｯ繝ｩ繧､繧｢繝ｳ繝医′繝��繧�
 					break;
 				}
 				dbp += 2;
-			}
-			
-			
-			
+			}	
 		}
         else
 		{
             printf("argumet error\n");
+			printf("example-> GET:amano-taro\n");
             exit(1);
         }
         printf("Received key> %s\n",key);
-        ans = return_ans(key_num, key, dbp);
-
 		if(*dbp == NULL) strcpy(ans, "No entry");
 		/* 讀懃ｴ｢縺励◆繝��繧ｿ繧偵た繧ｱ繝�ヨ縺ｫ譖ｸ縺崎ｾｼ繧 */
         datalen = strlen(ans);
@@ -186,5 +206,7 @@ void db_search(int socd) /* 繧ｯ繝ｩ繧､繧｢繝ｳ繝医′繝��繧�
 				i ++;
 			}
 		}
+		free(ans);
+		printf("check: ans -> %s\n",ans);
 	}
 }
